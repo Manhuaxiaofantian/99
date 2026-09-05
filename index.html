@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>教师节贺卡</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",sans-serif}
+html,body{width:100%;height:100%;overflow:hidden}
+#leafCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.wrapper{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f8fff8}
+.card{width:90vw;max-width:520px;height:72vh;max-height:620px;position:relative;perspective:1200px;cursor:pointer}
+.page{width:100%;height:100%;position:absolute;top:0;left:0;border-radius:16px;overflow:hidden;backface-visibility:hidden;transition:transform 1.4s ease-in-out;box-shadow:0 12px 32px rgba(0,60,20,0.18)}
+.cover{
+    background:linear-gradient(160deg,#539e6b,#72b987);
+    z-index:2;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff
+}
+.cover.open{transform:rotateY(-180deg)}
+.inner{
+    background:#ffffff;
+    transform:rotateY(180deg);
+    z-index:1;
+    padding:28px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    position:relative;
+}
+.inner.show{transform:rotateY(0deg)}
+.tree-deco{position:absolute;width:100%;height:100%;opacity:0.22;pointer-events:none}
+.tree-deco span{position:absolute;background:#ffffff40;border-radius:50%}
+.tree-deco span:nth-child(1){width:130px;height:180px;left:-30px;bottom:-40px}
+.tree-deco span:nth-child(2){width:160px;height:210px;right:-40px;bottom:-20px}
+.cover h1{font-size:34px;margin-bottom:16px;text-shadow:0 2px 6px #0003}
+.cover p{font-size:18px;opacity:0.92}
+.tip{position:absolute;bottom:34px;font-size:15px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:0.6}50%{opacity:1}}
+.teacher-img{
+    width:210px;
+    height:240px;
+    object-fit:cover;
+    border-radius:12px;
+    margin-bottom:8px;
+    margin-top:-12px; /* 图片整体向上偏移 */
+}
+.blessing{
+    text-align:center;
+    color:#2b4736;
+    line-height:1.8;
+    font-size:17px;
+    width:100%;
+    margin-top:0px;
+}
+.blessing h2{
+    margin-bottom:14px;
+    color:#376045;
+}
+audio{display:none}
+.back-btn{
+    position:absolute;
+    bottom:18px;
+    left:50%;
+    transform:translateX(-50%);
+    padding:8px 22px;
+    border:1px solid #539e6b;
+    color:#539e6b;
+    background:#fff;
+    border-radius:30px;
+    cursor:pointer;
+    font-size:15px;
+}
+.back-btn:hover{
+    background-color:#539e6b;
+    color:white;
+}
+.music-icon{
+    position:absolute;
+    top:18px;
+    right:18px;
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.35);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    color:#000000;
+    cursor:pointer;
+    z-index:10;
+}
+.music-icon.rotate{
+    animation:musicRotate 3s linear infinite;
+}
+@keyframes musicRotate{
+    from{transform:rotate(0deg)}
+    to{transform:rotate(360deg)}
+}
+.signature{
+    position:absolute;
+    bottom:40px;
+    right:20px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    color:#2b4736;
+    font-size:15px;
+}
+.flower{
+    font-size:18px;
+}
+</style>
+</head>
+<body>
+<canvas id="leafCanvas"></canvas>
+<div class="wrapper">
+    <div class="music-icon" id="musicBtn">♪</div>
+    <div class="card" id="card">
+        <div class="page cover" id="cover">
+            <div class="tree-deco">
+                <span></span><span></span>
+            </div>
+            <h1>致安明态老师</h1>
+            <p>教师节快乐</p>
+            <div class="tip">点击打开贺卡</div>
+        </div>
+        <div class="page inner" id="inner">
+            <img class="teacher-img" src="1.jpg">
+            <div class="blessing">
+                <h2>敬爱的老师:</h2>
+                <p>祝您教师节快乐，<br>身体健康,万事顺意,桃李芬芳!
+            </div>
+            <button class="back-btn" id="backBtn">返回封面</button>
+            <div class="signature">
+                <span class="flower">🌸</span>
+                <span>学生敬上</span>
+            </div>
+        </div>
+    </div>
+</div>
+<audio id="bgm" loop src="1.mp3">
+<script>
+//落叶动画
+const canvas=document.getElementById("leafCanvas");
+const ctx=canvas.getContext("2d");
+function resize(){
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight
+}
+resize();
+window.addEventListener("resize",resize);
+class Leaf{
+constructor(){
+    this.reset()
+}
+reset(){
+this.x=Math.random()*canvas.width;
+this.y=-30;
+this.size=Math.random()*14+6;
+this.speedY=Math.random()*1.4+0.65; // 加快下落速度
+this.speedX=Math.random()*0.9-0.45; // 加快横向飘动
+this.rotate=Math.random()*Math.PI*2;
+this.rotateSpeed=(Math.random()-0.5)*0.055; // 加快旋转
+}
+update(){
+this.y+=this.speedY;
+this.x+=this.speedX;
+this.rotate+=this.rotateSpeed;
+if(this.y>canvas.height+20){
+    this.reset()
+}
+}
+draw(){
+ctx.save();
+ctx.translate(this.x,this.y);
+ctx.rotate(this.rotate);
+ctx.fillStyle="#84b86c";
+ctx.beginPath();
+ctx.ellipse(0,0,this.size,this.size*0.6,0,0,Math.PI*2);
+ctx.fill();
+ctx.restore()
+}
+}
+let leaves=[];
+for(let i=0;i<45;i++){
+    leaves.push(new Leaf());
+}
+function animate(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+leaves.forEach(l=>{
+l.update();
+l.draw()
+});
+requestAnimationFrame(animate)
+}
+animate();
+//翻页、返回、音乐开关
+const card=document.getElementById("card");
+const cover=document.getElementById("cover");
+const inner=document.getElementById("inner");
+const bgm=document.getElementById("bgm");
+const backBtn=document.getElementById("backBtn");
+const musicBtn=document.getElementById("musicBtn");
+let opened=false;
+let musicPlaying=false;
+//打开贺卡
+card.onclick=()=>{
+if(!opened){
+cover.classList.add("open");
+inner.classList.add("show");
+opened=true;
+}
+}
+//返回封面
+backBtn.onclick=(e)=>{
+    e.stopPropagation();
+    cover.classList.remove("open");
+    inner.classList.remove("show");
+    opened=false;
+}
+//音乐切换按钮
+musicBtn.onclick=(e)=>{
+    e.stopPropagation();
+    if(!musicPlaying){
+        bgm.play().catch(err=>console.log(err));
+        musicBtn.classList.add("rotate");
+        musicPlaying=true;
+    }else{
+        bgm.pause();
+        musicBtn.classList.remove("rotate");
+        musicPlaying=false;
+    }
+}
+</script>
+</body>
+</html>
